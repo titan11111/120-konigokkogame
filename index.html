@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>鬼ごっこゲーム - ステルス脱出</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="ui-layer">
+            <div id="alert-gauge" class="ui-element">
+                <div class="gauge-label">警戒度</div>
+                <div class="gauge-bar">
+                    <div id="alert-level" class="gauge-fill"></div>
+                </div>
+                <div id="alert-status">安全</div>
+            </div>
+            
+            <div id="player-status" class="ui-element">
+                <div>体力: <span id="health">100</span>%</div>
+                <div>位置: <span id="location">町中</span></div>
+            </div>
+            
+            <div id="mission-info" class="ui-element">
+                <div class="mission-title">ミッション</div>
+                <div id="mission-text">鬼に捕まらずに家に帰る</div>
+                <div id="timer">時間: <span id="time-left">300</span>秒</div>
+            </div>
+        </div>
+        
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="game-over" class="overlay hidden">
+            <div class="overlay-content">
+                <h1 id="game-over-title">ゲームオーバー</h1>
+                <p id="game-over-message"></p>
+                <button onclick="location.reload()">リスタート</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
