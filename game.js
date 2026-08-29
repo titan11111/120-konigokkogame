@@ -26,7 +26,7 @@ const player = {
     vy: 0,
     health: 100,
     hiding: false,
-    location: '町中'
+    location: 'Downtown'
 };
 
 // 敵（鬼）
@@ -37,9 +37,9 @@ const enemies = [
 
 // 隠れスポット（建物など）
 const hideSpots = [
-    { x: 50, y: 200, width: 80, height: 100, name: '公園の茂み' },
-    { x: canvas.width - 150, y: 200, width: 80, height: 100, name: '廃屋' },
-    { x: canvas.width / 2 - 50, y: 100, width: 100, height: 80, name: '学校' }
+    { x: 50, y: 200, width: 80, height: 100, name: 'Park' },
+    { x: canvas.width - 150, y: 200, width: 80, height: 100, name: 'Building' },
+    { x: canvas.width / 2 - 50, y: 100, width: 100, height: 80, name: 'School' }
 ];
 
 // ゴール（家）
@@ -101,17 +101,17 @@ function updatePlayer() {
     player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
     player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
     
-    // 隠れスポット判定
-    player.hiding = hideSpots.some(spot => 
-        player.x + player.width > spot.x && 
+    // Check hiding spot collision
+    player.hiding = hideSpots.some(spot =>
+        player.x + player.width > spot.x &&
         player.x < spot.x + spot.width &&
-        player.y + player.height > spot.y && 
+        player.y + player.height > spot.y &&
         player.y < spot.y + spot.height
     );
-    
-    // 位置情報更新
-    player.location = hideSpots.find(s => player.hiding && 
-        player.x + player.width > s.x && player.x < s.x + s.width)?.name || '町中';
+
+    // Update location
+    player.location = hideSpots.find(s => player.hiding &&
+        player.x + player.width > s.x && player.x < s.x + s.width)?.name || 'Downtown';
 }
 
 function updateEnemies() {
@@ -187,11 +187,11 @@ function draw() {
         ctx.strokeRect(spot.x, spot.y, spot.width, spot.height);
     });
     
-    // ゴール（家）
+    // Goal (Home)
     ctx.fillStyle = '#ff6600';
     ctx.fillRect(goal.x, goal.y, goal.width, goal.height);
     ctx.fillStyle = '#fff';
-    ctx.fillText('家', goal.x + 15, goal.y + 25);
+    ctx.fillText('HOME', goal.x + 5, goal.y + 25);
     
     // プレイヤー
     ctx.fillStyle = player.hiding ? '#00ff00' : '#0066ff';
@@ -212,8 +212,8 @@ function draw() {
 
 function updateUI() {
     document.getElementById('alert-level').style.width = game.alertLevel + '%';
-    document.getElementById('alert-status').textContent = 
-        game.alertLevel > 66 ? '警戒中!' : game.alertLevel > 33 ? '注意' : '安全';
+    document.getElementById('alert-status').textContent =
+        game.alertLevel > 66 ? 'ALERT!' : game.alertLevel > 33 ? 'Caution' : 'Safe';
     document.getElementById('health').textContent = Math.max(0, Math.floor(player.health));
     document.getElementById('location').textContent = player.location;
     document.getElementById('time-left').textContent = Math.max(0, Math.floor(game.time));
@@ -223,17 +223,17 @@ function showGameOver() {
     const overlay = document.getElementById('game-over');
     const title = document.getElementById('game-over-title');
     const message = document.getElementById('game-over-message');
-    
+
     if (game.won) {
-        title.textContent = '帰宅成功！';
-        message.textContent = '無事に家に帰ることができました！';
+        title.textContent = 'Safe Home!';
+        message.textContent = 'You made it home safely!';
     } else {
-        title.textContent = 'つかまった...';
-        message.textContent = '鬼に捕まってしまいました。';
+        title.textContent = 'Caught!';
+        message.textContent = 'You were caught by the enemy.';
     }
-    
+
     overlay.classList.remove('hidden');
 }
 
-// ゲーム開始
+// Start game
 gameLoop();
