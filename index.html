@@ -1,45 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Hide and Seek - Stealth Escape</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Hide and Seek — Stealth Escape</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
-        <div id="ui-layer">
-            <div id="alert-gauge" class="ui-element">
-                <div class="gauge-label">Alert Level</div>
-                <div class="gauge-bar">
-                    <div id="alert-level" class="gauge-fill"></div>
-                </div>
-                <div id="alert-status">Safe</div>
-            </div>
-            
-            <div id="player-status" class="ui-element">
-                <div>Health: <span id="health">100</span>%</div>
-                <div>Location: <span id="location">Downtown</span></div>
-            </div>
-            
-            <div id="mission-info" class="ui-element">
-                <div class="mission-title">Mission</div>
-                <div id="mission-text">Escape home without being caught</div>
-                <div id="timer">Time: <span id="time-left">300</span>s</div>
-            </div>
-        </div>
-        
-        <canvas id="game-canvas"></canvas>
-        
-        <div id="game-over" class="overlay hidden">
-            <div class="overlay-content">
-                <h1 id="game-over-title">Game Over</h1>
-                <p id="game-over-message"></p>
-                <button onclick="location.reload()">Restart</button>
-            </div>
-        </div>
+  <div id="screen">
+    <div id="title-overlay" class="overlay">
+      <div class="codec-frame">
+        <p class="codec-label">FREQ 140.85</p>
+        <h1 id="title-main">HIDE AND SEEK</h1>
+        <p class="subtitle">A STEALTH ESCAPE</p>
+        <p class="tagline">It's time to go home. Five streets.</p>
+        <button type="button" id="btn-start" class="game-btn cta">TAP TO START</button>
+      </div>
     </div>
-    
-    <script src="game.js"></script>
+
+    <canvas id="game-canvas"></canvas>
+    <div id="scanlines" aria-hidden="true"></div>
+
+    <div id="hud" class="hidden">
+      <div id="hud-top">
+        <div id="alert-box">
+          <div id="alert-phase">SAFE</div>
+          <div class="gauge-bar"><div id="alert-fill"></div></div>
+        </div>
+        <div id="timer-box">
+          <div id="stage-box">STAGE <span id="stage-num">1/5</span></div>
+          TIME <span id="time-left">1:39</span>
+        </div>
+      </div>
+      <div id="mission-strip" aria-live="polite">
+        <span class="mission-kicker">OBJECTIVE</span>
+        <span id="goal-name">GATE</span>
+        <span id="goal-distance">0m</span>
+        <span id="goal-arrow" aria-hidden="true">➤</span>
+      </div>
+      <div id="status-chip" data-state="moving" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="status-text">MOVING</span>
+      </div>
+      <canvas id="radar" width="160" height="160"></canvas>
+      <button type="button" id="mute-btn" class="game-btn" aria-label="Mute">🔊</button>
+      <button type="button" id="pause-btn" class="game-btn icon-btn" aria-label="Pause game">Ⅱ</button>
+    </div>
+
+    <div id="virtual-controls" class="hidden">
+      <div class="dpad" id="move-stick" aria-label="Move: press a direction or drag anywhere on the pad">
+        <div class="stick-ring" aria-hidden="true"><div id="stick-knob"></div></div>
+        <button type="button" id="cv-up" class="game-btn pad" aria-label="Move up">▲</button>
+        <div class="dpad-row">
+          <button type="button" id="cv-left" class="game-btn pad" aria-label="Move left">◀</button>
+          <button type="button" id="cv-right" class="game-btn pad" aria-label="Move right">▶</button>
+        </div>
+        <button type="button" id="cv-down" class="game-btn pad" aria-label="Move down">▼</button>
+      </div>
+      <div class="action-btns">
+        <button type="button" id="cv-throw" class="game-btn throw-btn" aria-label="Toss pebble">
+          <span class="action-icon" aria-hidden="true">●</span>
+          <span class="action-label">TOSS</span>
+          <span id="throw-ready">READY</span>
+        </button>
+        <button type="button" id="cv-hide" class="game-btn hide-btn" aria-label="Hold to crouch and hide">
+          <span class="action-icon" aria-hidden="true">⌄</span>
+          <span class="action-label">HOLD</span>
+          <span class="action-sub">TO HIDE</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="brief-overlay" class="overlay hidden">
+      <div class="codec-frame">
+        <p class="codec-label" id="brief-label">STAGE 1/5  SCHOOLYARD</p>
+        <ul id="brief-lines"></ul>
+        <div class="control-brief" aria-label="Controls">
+          <div><span class="brief-key">DRAG</span><small>MOVE</small></div>
+          <div><span class="brief-key">HOLD</span><small>HIDE</small></div>
+          <div><span class="brief-key">TAP</span><small>TOSS</small></div>
+        </div>
+        <button type="button" id="btn-deploy" class="game-btn cta">TAP TO DEPLOY</button>
+      </div>
+    </div>
+
+    <div id="pause-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+      <div class="codec-frame pause-frame">
+        <p class="codec-label">CODEC PAUSED</p>
+        <h1 id="pause-title">STAY QUIET.</h1>
+        <p class="pause-copy">The street is frozen. Take your time.</p>
+        <button type="button" id="btn-resume" class="game-btn cta">RESUME MISSION</button>
+        <button type="button" id="btn-restart" class="game-btn secondary-cta">RESTART STAGE</button>
+      </div>
+    </div>
+
+    <div id="result-overlay" class="overlay hidden">
+      <div class="codec-frame">
+        <h1 id="result-title">CAUGHT!</h1>
+        <p id="result-msg">The seeker found you.</p>
+        <button type="button" id="btn-retry" class="game-btn cta">TAP TO RETRY</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="stages.js"></script>
+  <script src="draw.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
