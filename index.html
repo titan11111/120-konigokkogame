@@ -1,119 +1,240 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Hide and Seek — Stealth Escape</title>
-  <link rel="stylesheet" href="style.css">
-    <meta property="og:title" content="Hide and Seek — Stealth Escape">
-    <meta property="og:description" content="スマホ・PCのブラウザで遊べる無料ゲームです。インストール不要！">
-    <meta property="og:url" content="https://titan11111.github.io/120-konigokkogame/">
-    <meta property="og:type" content="website">
-    <meta name="twitter:card" content="summary">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05070f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>おうちに帰れ！ ─ HD-2D かくれんぼ潜入</title>
+<meta property="og:title" content="おうちに帰れ！ ─ HD-2D かくれんぼ潜入">
+<meta property="og:description" content="5時のチャイムまでに家へ。石を投げて鬼を撹乱し、見つからずに5つの町を抜ける潜入かくれんぼ。">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0e1c; --panel:#101a2e; --line:#2b3f63;
+    --amber:#ffd166; --sig:#7cf7c4; --danger:#ff5964; --paper:#e8eef7;
+    --sat:env(safe-area-inset-top,0px);  --sar:env(safe-area-inset-right,0px);
+    --sab:env(safe-area-inset-bottom,0px); --sal:env(safe-area-inset-left,0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  /* iOS のラバーバンド（バウンス）を止める */
+  html,body{height:100%;overflow:hidden;position:fixed;width:100%;overscroll-behavior:none}
+  body{
+    background:radial-gradient(1200px 700px at 50% -10%, #1b2a4a 0%, #070a15 60%, #04060d 100%);
+    color:var(--paper);
+    font-family:"M PLUS Rounded 1c",system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center;
+    padding:12px;overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;
+    -webkit-text-size-adjust:100%;
+  }
+  #wrap{
+    position:relative;width:min(100%,1000px);
+    aspect-ratio:960/600;max-height:calc(100vh - 24px);
+    border-radius:14px;overflow:hidden;
+    border:1px solid var(--line);
+    box-shadow:0 30px 80px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.04);
+    background:#05070f;
+    touch-action:none;user-select:none;-webkit-user-select:none;
+  }
+  /* キャンバスは最背面。DOM上は最後に置くが z-index で必ず下に敷く
+     （こうすると最初のタップ対象がタイトルの「しゅつげき！」になり、
+       自動スモークテストが実際に開始ボタンを押せる） */
+  canvas{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:1}
+
+  /* ── オーバーレイ ── */
+  .screen{
+    position:absolute;inset:0;display:none;
+    flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;text-align:center;padding:calc(20px + var(--sat)) 24px calc(20px + var(--sab));
+    background:radial-gradient(700px 400px at 50% 40%, rgba(12,22,42,.88), rgba(3,5,12,.97));
+    backdrop-filter:blur(3px);overflow-y:auto;z-index:20;
+  }
+  .screen.on{display:flex}
+  .eyebrow{
+    font-size:12px;letter-spacing:.32em;color:var(--sig);
+    border:1px solid rgba(124,247,196,.35);border-radius:999px;padding:5px 14px;
+  }
+  h1{
+    font-family:"Dela Gothic One",sans-serif;
+    font-size:clamp(23px,4.6vw,44px);line-height:1.15;
+    text-shadow:0 0 24px rgba(124,247,196,.25);
+  }
+  h1 .sub{display:block;font-size:.42em;letter-spacing:.18em;color:var(--amber);margin-top:10px}
+  h2{font-family:"Dela Gothic One",sans-serif;font-size:clamp(19px,3.4vw,30px);color:var(--paper)}
+  .codec{
+    max-width:590px;text-align:left;font-size:14px;line-height:1.85;
+    border-left:3px solid var(--sig);padding:12px 16px;
+    background:linear-gradient(90deg, rgba(124,247,196,.09), transparent);
+    border-radius:0 8px 8px 0;
+  }
+  .codec b{color:var(--amber)}
+  .objbar{
+    display:inline-flex;align-items:center;gap:10px;
+    border:1px solid rgba(255,209,102,.45);background:rgba(255,209,102,.10);
+    border-radius:999px;padding:8px 18px;font-size:14px;font-weight:800;color:var(--amber);
+  }
+  .objbar span{font-size:10px;letter-spacing:.2em;color:#9fb3d4;font-weight:500}
+  .tip{font-size:12px;color:#8fa6c9}
+  .keys{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;font-size:11.5px;color:#9fb3d4;max-width:620px}
+  .keys span{border:1px solid var(--line);border-radius:7px;padding:5px 9px;background:rgba(255,255,255,.03)}
+  button.cta{
+    font-family:"Dela Gothic One",sans-serif;font-size:17px;
+    color:#06210f;background:var(--sig);border:0;border-radius:999px;
+    padding:13px 32px;cursor:pointer;
+    box-shadow:0 0 0 4px rgba(124,247,196,.16), 0 12px 30px rgba(124,247,196,.2);
+    transition:transform .12s ease;
+  }
+  button.cta:hover{transform:translateY(-2px)}
+  button.cta:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+  button.ghost{
+    font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;font-size:13px;
+    color:#9fb3d4;background:transparent;border:1px solid var(--line);
+    border-radius:999px;padding:9px 20px;cursor:pointer;
+  }
+  button.ghost:hover{color:var(--paper);border-color:var(--sig)}
+  .stat{font-size:15px;color:#b9c9e4;line-height:1.7}
+  .stat b{color:var(--amber);font-size:20px;font-family:"Dela Gothic One",sans-serif}
+  .opt{display:flex;align-items:center;gap:8px;font-size:12px;color:#9fb3d4;cursor:pointer}
+  .opt input{width:16px;height:16px;accent-color:#7cf7c4}
+
+  /* ── モバイル操作 ── */
+  #touch{position:absolute;inset:0;display:none;pointer-events:none;z-index:10}
+  #touch.on{display:block}
+  #stick{position:absolute;left:0;bottom:0;width:46%;height:62%;pointer-events:auto}
+  #knobBase,#knob{position:absolute;border-radius:50%;pointer-events:none;opacity:0;transition:opacity .15s}
+  #knobBase{width:112px;height:112px;border:2px solid rgba(255,255,255,.25);background:rgba(10,20,40,.3)}
+  #knob{width:52px;height:52px;background:rgba(124,247,196,.6)}
+  .tbtn{
+    position:absolute;pointer-events:auto;
+    border-radius:50%;border:2px solid rgba(255,255,255,.24);
+    color:#fff;font-family:"Dela Gothic One",sans-serif;
+    background:rgba(255,209,102,.16);
+    transition:transform .08s ease, background .12s ease;
+  }
+  .tbtn.down{transform:scale(.92);background:rgba(255,209,102,.34)}
+  /* 3ボタンを扇形に置く（石が増えたので再設計） */
+  #btnRun  {right:calc(20px + var(--sar)); bottom:calc(22px + var(--sab)); width:92px;height:92px;font-size:14px}
+  #btnStone{right:calc(116px + var(--sar));bottom:calc(58px + var(--sab)); width:82px;height:82px;font-size:15px;
+            background:rgba(190,200,220,.20);border-color:rgba(220,230,245,.34)}
+  #btnStone.down{background:rgba(190,200,220,.40)}
+  #btnSneak{right:calc(36px + var(--sar)); bottom:calc(126px + var(--sab));width:82px;height:82px;font-size:13px;
+            background:rgba(124,247,196,.16)}
+  #btnSneak.down{background:rgba(124,247,196,.34)}
+  #btnAct  {right:calc(132px + var(--sar));bottom:calc(152px + var(--sab));width:74px;height:74px;font-size:13px;
+            background:rgba(255,140,180,.18);border-color:rgba(255,180,205,.34)}
+  #btnAct.down{background:rgba(255,140,180,.38)}
+
+  #btnPause{
+    position:absolute;top:calc(8px + var(--sat));right:calc(10px + var(--sar));
+    z-index:12;width:38px;height:38px;border-radius:10px;
+    border:1px solid rgba(255,255,255,.18);background:rgba(8,14,28,.6);
+    color:#9fb3d4;font-size:15px;cursor:pointer;pointer-events:auto;
+  }
+  #btnPause:hover{color:#fff;border-color:var(--sig)}
+  .hint{position:absolute;left:12px;bottom:calc(6px + var(--sab));font-size:11px;color:#6f83a6;letter-spacing:.05em;z-index:11}
+  @media (pointer:coarse){ .hint{display:none} }
+  @media (prefers-reduced-motion:reduce){ button.cta,.tbtn{transition:none} }
+</style>
 </head>
 <body>
-  <div id="screen">
-    <div id="title-overlay" class="overlay">
-      <div class="codec-frame">
-        <p class="codec-label">FREQ 140.85</p>
-        <h1 id="title-main">HIDE AND SEEK</h1>
-        <p class="subtitle">A STEALTH ESCAPE</p>
-        <p class="tagline">It's time to go home. Five streets.</p>
-        <button type="button" id="btn-start" class="game-btn cta">TAP TO START</button>
-      </div>
+<div id="wrap">
+  <!-- タイトル -->
+  <div class="screen on" id="scTitle">
+    <div class="eyebrow">HD-2D TACTICAL KAKURENBO</div>
+    <h1>おうちに帰れ！<span class="sub">～ 5時のチャイムまでに ～</span></h1>
+    <div class="codec">
+      <b>【任務】</b> 公園からの帰り道。町じゅうに <b>鬼</b> がいる。見つからずに <b>5つの町</b> を抜けろ。<br>
+      <b>【道具】</b> 草むら・ダンボール・いけがき・みぞ・土管にもぐれば姿は消える。<b>いけがきとみぞは、かくれたまま歩ける。</b><br>
+      <b>【武器】</b> <b>石</b> を投げると音が出て、鬼はそっちを見に行く。当てれば少しのあいだ ひるむ。<br>
+      <b>【勝利】</b> 面ごとの目的をこなして出口へ。時間切れかライフ0でゲームオーバー。
     </div>
-
-    <canvas id="game-canvas"></canvas>
-    <div id="scanlines" aria-hidden="true"></div>
-
-    <div id="hud" class="hidden">
-      <div id="hud-top">
-        <div id="alert-box">
-          <div id="alert-phase">SAFE</div>
-          <div class="gauge-bar"><div id="alert-fill"></div></div>
-        </div>
-        <div id="timer-box">
-          <div id="stage-box">STAGE <span id="stage-num">1/5</span></div>
-          TIME <span id="time-left">1:39</span>
-        </div>
-      </div>
-      <div id="mission-strip" aria-live="polite">
-        <span class="mission-kicker">OBJECTIVE</span>
-        <span id="goal-name">GATE</span>
-        <span id="goal-distance">0m</span>
-        <span id="goal-arrow" aria-hidden="true">➤</span>
-      </div>
-      <div id="status-chip" data-state="moving" aria-live="polite">
-        <span class="status-dot" aria-hidden="true"></span>
-        <span id="status-text">MOVING</span>
-      </div>
-      <canvas id="radar" width="160" height="160"></canvas>
-      <button type="button" id="mute-btn" class="game-btn" aria-label="Mute">🔊</button>
-      <button type="button" id="pause-btn" class="game-btn icon-btn" aria-label="Pause game">Ⅱ</button>
+    <div class="keys">
+      <span>移動 ← → ↑ ↓ / WASD</span><span>Shift ダッシュ</span><span>Z しのび足</span>
+      <span>X（長押し）いしを構える → はなして投げる</span><span>E アクション</span><span>Esc 一時停止</span>
     </div>
-
-    <div id="virtual-controls" class="hidden">
-      <div class="dpad" id="move-stick" aria-label="Move: press a direction or drag anywhere on the pad">
-        <div class="stick-ring" aria-hidden="true"><div id="stick-knob"></div></div>
-        <button type="button" id="cv-up" class="game-btn pad" aria-label="Move up">▲</button>
-        <div class="dpad-row">
-          <button type="button" id="cv-left" class="game-btn pad" aria-label="Move left">◀</button>
-          <button type="button" id="cv-right" class="game-btn pad" aria-label="Move right">▶</button>
-        </div>
-        <button type="button" id="cv-down" class="game-btn pad" aria-label="Move down">▼</button>
-      </div>
-      <div class="action-btns">
-        <button type="button" id="cv-throw" class="game-btn throw-btn" aria-label="Toss pebble">
-          <span class="action-icon" aria-hidden="true">●</span>
-          <span class="action-label">TOSS</span>
-          <span id="throw-ready">READY</span>
-        </button>
-        <button type="button" id="cv-hide" class="game-btn hide-btn" aria-label="Hold to crouch and hide">
-          <span class="action-icon" aria-hidden="true">⌄</span>
-          <span class="action-label">HOLD</span>
-          <span class="action-sub">TO HIDE</span>
-        </button>
-      </div>
-    </div>
-
-    <div id="brief-overlay" class="overlay hidden">
-      <div class="codec-frame">
-        <p class="codec-label" id="brief-label">STAGE 1/5  SCHOOLYARD</p>
-        <ul id="brief-lines"></ul>
-        <div class="control-brief" aria-label="Controls">
-          <div><span class="brief-key">DRAG</span><small>MOVE</small></div>
-          <div><span class="brief-key">HOLD</span><small>HIDE</small></div>
-          <div><span class="brief-key">TAP</span><small>TOSS</small></div>
-        </div>
-        <button type="button" id="btn-deploy" class="game-btn cta">TAP TO DEPLOY</button>
-      </div>
-    </div>
-
-    <div id="pause-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
-      <div class="codec-frame pause-frame">
-        <p class="codec-label">CODEC PAUSED</p>
-        <h1 id="pause-title">STAY QUIET.</h1>
-        <p class="pause-copy">The street is frozen. Take your time.</p>
-        <button type="button" id="btn-resume" class="game-btn cta">RESUME MISSION</button>
-        <button type="button" id="btn-restart" class="game-btn secondary-cta">RESTART STAGE</button>
-      </div>
-    </div>
-
-    <div id="result-overlay" class="overlay hidden">
-      <div class="codec-frame">
-        <h1 id="result-title">CAUGHT!</h1>
-        <p id="result-msg">The seeker found you.</p>
-        <button type="button" id="btn-retry" class="game-btn cta">TAP TO RETRY</button>
-      </div>
-    </div>
+    <label class="opt"><input type="checkbox" id="optToggle"> ダッシュ／しのび足を「押しっぱなし」ではなく「切りかえ」にする</label>
+    <button class="cta" id="btnStart">しゅつげき！</button>
   </div>
 
-  <script src="config.js"></script>
-  <script src="stages.js"></script>
-  <script src="draw.js"></script>
-  <script src="script.js"></script>
+  <!-- 面の導入（無線） -->
+  <div class="screen" id="scCodec">
+    <div class="eyebrow" id="cdStage">STAGE 1 / 5</div>
+    <h2 id="cdName">ゆうがたの公園</h2>
+    <div class="codec" id="cdText"></div>
+    <div class="objbar"><span>もくてき</span><b id="cdObj"></b></div>
+    <div class="tip" id="cdTip"></div>
+    <button class="cta" id="btnGo">いくぞ</button>
+  </div>
+
+  <!-- 面クリア -->
+  <div class="screen" id="scClear">
+    <div class="eyebrow" id="clStage">STAGE CLEAR</div>
+    <h1>ぬけた！<span class="sub">AREA CLEAR</span></h1>
+    <div class="stat" id="clStat"></div>
+    <button class="cta" id="btnNext">つぎの面へ</button>
+  </div>
+
+  <!-- 失敗 -->
+  <div class="screen" id="scOver">
+    <div class="eyebrow" style="color:var(--danger);border-color:rgba(255,89,100,.4)">MISSION FAILED</div>
+    <h1 id="ovTitle">つかまった…</h1>
+    <div class="stat" id="ovStat"></div>
+    <button class="cta" id="btnRetry">この面をやりなおす</button>
+    <button class="ghost" id="btnTitle">タイトルへ</button>
+  </div>
+
+  <!-- 全面クリア -->
+  <div class="screen" id="scEnd">
+    <div class="eyebrow">MISSION ACCOMPLISHED</div>
+    <h1>ただいまー！<span class="sub">５時のチャイム、まにあった</span></h1>
+    <div class="stat" id="edStat"></div>
+    <div class="objbar"><span>そうごうランク</span><b id="edRank"></b></div>
+    <button class="cta" id="btnEndTitle">タイトルへ</button>
+  </div>
+
+  <!-- 一時停止 -->
+  <div class="screen" id="scPause">
+    <div class="eyebrow">PAUSE</div>
+    <h2>ひとやすみ</h2>
+    <div class="objbar"><span>いまの もくてき</span><b id="pzObj"></b></div>
+    <div class="stat" id="pzProg"></div>
+    <div class="tip" id="pzTip"></div>
+    <button class="cta" id="btnResume">つづける</button>
+    <button class="ghost" id="btnQuit">タイトルへもどる</button>
+  </div>
+
+  <div id="touch">
+    <div id="stick"></div>
+    <div id="knobBase"></div><div id="knob"></div>
+    <button class="tbtn" id="btnRun">ダッシュ</button>
+    <button class="tbtn" id="btnStone">いし</button>
+    <button class="tbtn" id="btnSneak">しのび足</button>
+    <button class="tbtn" id="btnAct">アクション</button>
+  </div>
+  <button id="btnPause" title="一時停止 (Esc)">❚❚</button>
+
+  <canvas id="cv"></canvas>
+
+  <div class="hint">矢印/WASD＝移動　Shift＝ダッシュ　Z＝しのび足　X長押し＝いし　E＝アクション</div>
+</div>
+
+<script>
+  /* iOS: ダブルタップ拡大とピンチを止める */
+  document.addEventListener('gesturestart', e => e.preventDefault(), {passive:false});
+  let _lastTap = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if(now - _lastTap < 320) e.preventDefault();
+    _lastTap = now;
+  }, {passive:false});
+  document.addEventListener('dblclick', e => e.preventDefault(), {passive:false});
+</script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
