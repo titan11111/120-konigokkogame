@@ -79,6 +79,11 @@ function osc({freq=440, dur=.2, type='triangle', vol=.08, to=0, at=0, lp=0}){
 }
 
 export const sfx = {
+  /* 操作盤の打感（短く・小さく。常時ビープにしない） */
+  tap(){
+    nz({dur:.028, f0:1800, f1:900, vol:.028, type:'bandpass', q:1.4});
+  },
+
   /* ── 常時鳴る音：ぜんぶノイズ。ビープにしない ── */
   step(surface){
     // アスファルト＝硬い / 草＝やわらかい / 砂利＝ざらつく

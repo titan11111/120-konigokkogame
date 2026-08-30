@@ -1,5 +1,11 @@
 # LEARNINGS — 120-konigokkogame
 
+## 2026-08-30 | 打感＋iOS操作の仕上げ（Day44出荷前）
+
+- やったこと: 下25%操作盤は既にあつたので、打感を足した。十字・A/B/C・CTA を `pointerdown`＋`setPointerCapture`、`scale(0.92)`、`vibrate(14)`、短いタップSE。ダブルタップ／長押しメニュー／touchmove の防止を文書全体に広げた。safe-area は `max(8px, env(...))`。
+- 検証: `game-harness.sh` PASS（75/25・非重複・48px・safe-area・コンソール0）。実機 iPhone の指感は未検証。
+- 次: Day44 として GitHub Pages／Slack／X。
+
 ## 2026-08-30 | iPhone用に「下25%＝操作盤」へ作り直す
 
 ### タイタンの指示

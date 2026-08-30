@@ -8,9 +8,22 @@
    ══════════════════════════════════════════ */
 
 import { VW, VH } from './config.js';
+import { unlock, sfx } from './audio.js';
 
 export const keys = {};
 export const touch = { active:false, dx:0, dy:0, digital:false, run:false, sneak:false, stone:false, act:false };
+
+/* 打感：見た目 → 振動 → 短いSE。重い処理は呼ばない */
+function thump(el){
+  if(el){
+    el.classList.add('is-pressed');
+    clearTimeout(el._thumpT);
+    el._thumpT = setTimeout(() => el.classList.remove('is-pressed'), 90);
+  }
+  unlock();
+  if(navigator.vibrate) navigator.vibrate(14);
+  try{ sfx.tap(); }catch(_){}
+}
 
 /* HUD が「今どこにヒント帯を描いたか」を置く場所（内部解像度の座標）。
    タップ判定に使う。帯が出ていないときは null。 */
@@ -132,12 +145,14 @@ export function initTouchUI(){
   if(pad){
     pad.addEventListener('pointerdown', e => {
       padId = e.pointerId; touch.active = true; touch.digital = true;
-      pad.setPointerCapture(e.pointerId); aim(e); e.preventDefault();
+      try{ pad.setPointerCapture(e.pointerId); }catch(_){}
+      thump(pad); aim(e); e.preventDefault();
     });
     pad.addEventListener('pointermove', e => { if(e.pointerId === padId) aim(e); });
     const padEnd = e => {
       if(e.pointerId !== padId) return;
       padId = null; touch.active = false; touch.dx = touch.dy = 0; paint(0,0);
+      pad.classList.remove('is-pressed');
     };
     pad.addEventListener('pointerup', padEnd);
     pad.addEventListener('pointercancel', padEnd);
@@ -148,7 +163,10 @@ export function initTouchUI(){
     const b = document.getElementById(id);
     if(!b) return;
     b.addEventListener('pointerdown', e => {
-      e.preventDefault(); b.classList.add('down'); touch[prop] = true;
+      e.preventDefault();
+      try{ b.setPointerCapture(e.pointerId); }catch(_){}
+      thump(b);
+      b.classList.add('down'); touch[prop] = true;
       if(prop === 'run') held.sneak = false;      // 走ったらしのび足は解除
     });
     ['pointerup','pointerleave','pointercancel'].forEach(ev =>
@@ -162,6 +180,8 @@ export function initTouchUI(){
   if(btnA){
     btnA.addEventListener('pointerdown', e => {
       e.preventDefault();
+      try{ btnA.setPointerCapture(e.pointerId); }catch(_){}
+      thump(btnA);
       held.sneak = !held.sneak; held.run = false; touch.run = false;
       btnA.classList.toggle('on', held.sneak);
     });
@@ -178,6 +198,7 @@ export function initTouchUI(){
       const ly = (e.clientY - b.top ) / b.height * r.vh;
       if(lx < r.x - 12 || lx > r.x + r.w + 12 || ly < r.y - 10 || ly > r.y + r.h + 10) return;
       e.preventDefault();
+      thump(null);
       touch.act = true;
       setTimeout(() => { touch.act = false; }, 120);   // 1フレーム以上は確実に立てる
     });

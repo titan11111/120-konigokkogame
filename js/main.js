@@ -351,17 +351,35 @@ function gameOver(reason){
   show('scOver');
 }
 
-/* ── ボタン ── */
-S('btnStart').addEventListener('click', () => { unlock(); G.levelIndex = 0;
+/* ── ボタン（pointerdown＝最速。clickだけだと iOS で遅れる） ── */
+function bindTap(id, handler){
+  const el = S(id);
+  if(!el) return;
+  const fire = (e) => {
+    e.preventDefault();
+    el.classList.add('is-pressed');
+    unlock();
+    if(navigator.vibrate) navigator.vibrate(14);
+    try{ sfx.tap(); }catch(_){}
+    handler(e);
+  };
+  const release = () => el.classList.remove('is-pressed');
+  el.addEventListener('pointerdown', fire);
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', release);
+  el.addEventListener('pointerleave', release);
+}
+
+bindTap('btnStart', () => { unlock(); G.levelIndex = 0;
   G.run = {time:0,caught:0,raised:0,perfect:0}; showCodec(); });
-S('btnGo').addEventListener('click', startLevel);
-S('btnNext').addEventListener('click', nextLevel);
-S('btnRetry').addEventListener('click', startLevel);
-S('btnTitle').addEventListener('click', () => { G.state='title'; show('scTitle'); });
-S('btnEndTitle').addEventListener('click', () => { G.state='title'; show('scTitle'); });
-S('btnResume').addEventListener('click', () => { G.state='play'; hideAll(); });
-S('btnQuit').addEventListener('click', () => { G.state='title'; show('scTitle'); });
-S('btnPause').addEventListener('click', () => togglePause());
+bindTap('btnGo', startLevel);
+bindTap('btnNext', nextLevel);
+bindTap('btnRetry', startLevel);
+bindTap('btnTitle', () => { G.state='title'; show('scTitle'); });
+bindTap('btnEndTitle', () => { G.state='title'; show('scTitle'); });
+bindTap('btnResume', () => { G.state='play'; hideAll(); });
+bindTap('btnQuit', () => { G.state='title'; show('scTitle'); });
+bindTap('btnPause', () => togglePause());
 
 const chk = S('optToggle');
 chk.checked = In.opt.toggleMove;
@@ -380,11 +398,11 @@ function togglePause(){
 In.setKeyHook(k => {
   if(k === 'escape' || k === 'p') togglePause();
   if(k === ' '){
-    if(G.state === 'title')      S('btnStart').click();
+    if(G.state === 'title')      S('btnStart').dispatchEvent(new PointerEvent('pointerdown', {bubbles:true}));
     else if(G.state === 'codec') startLevel();
     else if(G.state === 'clear') nextLevel();
     else if(G.state === 'over')  startLevel();
-    else if(G.state === 'end')   S('btnEndTitle').click();
+    else if(G.state === 'end')   S('btnEndTitle').dispatchEvent(new PointerEvent('pointerdown', {bubbles:true}));
   }
 });
 

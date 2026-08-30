@@ -50,7 +50,9 @@
   #control-deck{
     position:relative;flex:0 0 25%;height:25%;
     display:flex;align-items:center;gap:10px;
-    padding:8px 12px calc(8px + var(--sab)) 12px;
+    padding:8px 12px max(8px, calc(8px + var(--sab))) 12px;
+    padding-left:max(12px, calc(12px + var(--sal)));
+    padding-right:max(12px, calc(12px + var(--sar)));
     background:linear-gradient(180deg,#0b1224 0%,#070b16 100%);
     border-top:1px solid var(--line);
     overflow:hidden;touch-action:none;
@@ -99,18 +101,24 @@
   button.cta{
     font-family:"Dela Gothic One",sans-serif;font-size:17px;
     color:#06210f;background:var(--sig);border:0;border-radius:999px;
-    padding:13px 32px;cursor:pointer;
+    padding:13px 32px;cursor:pointer;min-height:56px;
     box-shadow:0 0 0 4px rgba(124,247,196,.16), 0 12px 30px rgba(124,247,196,.2);
-    transition:transform .12s ease;
+    transition:transform .08s ease, opacity .08s ease;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+    will-change:transform;
   }
   button.cta:hover{transform:translateY(-2px)}
+  button.cta:active, button.cta.is-pressed{transform:scale(.92);opacity:.88}
   button.cta:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
   button.ghost{
     font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;font-size:13px;
     color:#9fb3d4;background:transparent;border:1px solid var(--line);
-    border-radius:999px;padding:9px 20px;cursor:pointer;
+    border-radius:999px;padding:9px 20px;cursor:pointer;min-height:48px;
+    transition:transform .08s ease, opacity .08s ease;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation;
   }
   button.ghost:hover{color:var(--paper);border-color:var(--sig)}
+  button.ghost:active, button.ghost.is-pressed{transform:scale(.92);opacity:.88}
   .stat{font-size:15px;color:#b9c9e4;line-height:1.7}
   .stat b{color:var(--amber);font-size:20px;font-family:"Dela Gothic One",sans-serif}
   .opt{display:flex;align-items:center;gap:8px;font-size:12px;color:#9fb3d4;cursor:pointer}
@@ -153,10 +161,13 @@
     background:rgba(255,209,102,.16);
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
     line-height:1.05;text-align:center;padding:0;cursor:pointer;white-space:nowrap;
-    transition:transform .07s ease, background .1s linear, border-color .1s linear;
-    -webkit-tap-highlight-color:transparent;
+    min-width:56px;min-height:56px;
+    transition:transform .08s ease, background .1s linear, border-color .1s linear, opacity .08s ease;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+    will-change:transform;user-select:none;-webkit-user-select:none;
   }
-  .abtn.down{transform:scale(.93)}
+  .abtn.down, .abtn:active, .abtn.is-pressed{transform:scale(.92);opacity:.88}
+  #pad.is-pressed .d{background:rgba(124,247,196,.38)}
   .abtn small{
     display:block;font-size:8.5px;letter-spacing:0;line-height:1.15;
     color:rgba(255,255,255,.58);font-family:"M PLUS Rounded 1c",sans-serif;font-weight:500;
@@ -304,15 +315,21 @@
 </div><!-- /#game-shell -->
 
 <script>
-  /* iOS: ダブルタップ拡大とピンチを止める */
+  /* iOS: ダブルタップ拡大・ピンチ・長押しメニュー・ラバーバンドを止める */
   document.addEventListener('gesturestart', e => e.preventDefault(), {passive:false});
+  document.addEventListener('gesturechange', e => e.preventDefault(), {passive:false});
+  document.addEventListener('contextmenu', e => e.preventDefault(), {passive:false});
+  document.addEventListener('dblclick', e => e.preventDefault(), {passive:false});
   let _lastTap = 0;
   document.addEventListener('touchend', e => {
     const now = Date.now();
     if(now - _lastTap < 320) e.preventDefault();
     _lastTap = now;
   }, {passive:false});
-  document.addEventListener('dblclick', e => e.preventDefault(), {passive:false});
+  document.addEventListener('touchmove', e => {
+    if(e.target.closest('[data-scrollable], .codec')) return;
+    e.preventDefault();
+  }, {passive:false});
 </script>
 <script type="module" src="js/main.js"></script>
 </body>
