@@ -48,8 +48,13 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if(!keys[k]){                       // トグルは押した瞬間だけ反応
     if(opt.toggleMove){
-      if(k === 'shift'){ held.run = !held.run; held.sneak = false; }
-      if(k === 'z')    { held.sneak = !held.sneak; held.run = false; }
+      if(k === 'shift'){ held.run = !held.run; held.sneak = false; syncButtons(); }
+      if(k === 'z')    { held.sneak = !held.sneak; held.run = false; syncButtons(); }
+    } else if(k === 'shift' && held.sneak){
+      /* Aボタンでしのび足を固定したままキーボードでダッシュすると、
+         しのび足が優先されて「ダッシュが効かない」状態になっていた。
+         走ろうとした時点でしのび足は解除する（入力どうしを潰し合わせない）。 */
+      held.sneak = false; syncButtons();
     }
   }
   keys[k] = true;
@@ -80,7 +85,9 @@ export function wantRun(){
 }
 export function wantSneak(){
   /* Aボタンは常にトグル（潜入の基本姿勢なので押しっぱなしにさせない）。
-     キーボードは従来どおり設定に従う。 */
+     キーボードは従来どおり設定に従う。
+     ダッシュ入力が立っている間はしのび足を出さない ─ 速度指定の優先順位はここ1か所で決める。 */
+  if(wantRun()) return false;
   if(held.sneak) return true;
   return opt.toggleMove ? false : (keys['z'] || keys['control']);
 }
