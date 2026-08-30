@@ -33,19 +33,32 @@
     -webkit-touch-callout:none;
     -webkit-text-size-adjust:100%;
   }
-  #wrap{
-    position:relative;width:min(100%,1000px);
-    aspect-ratio:960/600;max-height:calc(100vh - 24px);
-    border-radius:14px;overflow:hidden;
-    border:1px solid var(--line);
-    box-shadow:0 30px 80px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.04);
-    background:#05070f;
+  /* ══ iPhone想定レイアウト ══
+     上75% = ゲーム（#game-stage > #screen-wrap > canvas）
+     下25% = 操作盤（#control-deck）。両者は重ならない。
+     この4つのidは _tools/game-harness.mjs の操作系チェックの契約でもある。 */
+  #game-shell{
+    position:fixed;inset:0;width:100%;height:100%;
+    display:flex;flex-direction:column;
     touch-action:none;user-select:none;-webkit-user-select:none;
+  }
+  #game-stage{position:relative;flex:0 0 75%;height:75%;min-height:0}
+  #screen-wrap{
+    position:absolute;inset:0;overflow:hidden;background:#05070f;
+    border-bottom:1px solid var(--line);
+  }
+  #control-deck{
+    position:relative;flex:0 0 25%;height:25%;
+    display:flex;align-items:center;gap:10px;
+    padding:8px 12px calc(8px + var(--sab)) 12px;
+    background:linear-gradient(180deg,#0b1224 0%,#070b16 100%);
+    border-top:1px solid var(--line);
+    overflow:hidden;touch-action:none;
   }
   /* キャンバスは最背面。DOM上は最後に置くが z-index で必ず下に敷く
      （こうすると最初のタップ対象がタイトルの「しゅつげき！」になり、
        自動スモークテストが実際に開始ボタンを押せる） */
-  canvas{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:1}
+  canvas{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:1;touch-action:none}
 
   /* ── オーバーレイ ── */
   .screen{
@@ -103,47 +116,101 @@
   .opt{display:flex;align-items:center;gap:8px;font-size:12px;color:#9fb3d4;cursor:pointer}
   .opt input{width:16px;height:16px;accent-color:#7cf7c4}
 
-  /* ── モバイル操作 ── */
-  #touch{position:absolute;inset:0;display:none;pointer-events:none;z-index:10}
-  #touch.on{display:block}
-  #stick{position:absolute;left:0;bottom:0;width:46%;height:62%;pointer-events:auto}
-  #knobBase,#knob{position:absolute;border-radius:50%;pointer-events:none;opacity:0;transition:opacity .15s}
-  #knobBase{width:112px;height:112px;border:2px solid rgba(255,255,255,.25);background:rgba(10,20,40,.3)}
-  #knob{width:52px;height:52px;background:rgba(124,247,196,.6)}
-  .tbtn{
-    position:absolute;pointer-events:auto;
-    border-radius:50%;border:2px solid rgba(255,255,255,.24);
+  /* ── 操作盤（下25%）──
+     左＝十字キー／右＝A(しのび足)・B(いし)・C(ダッシュ)。
+     「とる／まってて」は画面下のヒント帯を直接タップする（4つ目は置かない）。 */
+  #pad{
+    position:relative;flex:0 0 auto;
+    height:min(100%,164px);aspect-ratio:1;
+    touch-action:none;
+  }
+  #pad .d{
+    position:absolute;display:block;
+    background:rgba(140,168,210,.26);border:1px solid rgba(170,195,235,.42);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.10);
+    transition:background .06s linear;
+  }
+  #pad .d.on{background:rgba(124,247,196,.46);border-color:rgba(124,247,196,.75)}
+  #pad .up{left:34%;top:0;width:32%;height:34%;border-radius:12px 12px 0 0}
+  #pad .dn{left:34%;bottom:0;width:32%;height:34%;border-radius:0 0 12px 12px}
+  #pad .lf{top:33%;left:0;height:34%;width:34%;border-radius:12px 0 0 12px}
+  #pad .rt{top:33%;right:0;height:34%;width:34%;border-radius:0 12px 12px 0}
+  #pad .hub{
+    position:absolute;left:33%;top:32.5%;width:34%;height:35%;
+    background:rgba(126,150,190,.10);border:1px solid rgba(150,175,215,.20);
+  }
+  #pad .glyph{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-size:10px;color:#93a8cc;letter-spacing:.08em;pointer-events:none;font-weight:800;
+  }
+
+  #control-deck.dim{opacity:.34;pointer-events:none;filter:saturate(.5)}
+  #acts{position:relative;flex:1 1 auto;height:100%}
+  .abtn{
+    position:absolute;
+    border-radius:50%;border:2px solid rgba(255,255,255,.22);
     color:#fff;font-family:"Dela Gothic One",sans-serif;
     background:rgba(255,209,102,.16);
-    transition:transform .08s ease, background .12s ease;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    line-height:1.05;text-align:center;padding:0;cursor:pointer;white-space:nowrap;
+    transition:transform .07s ease, background .1s linear, border-color .1s linear;
+    -webkit-tap-highlight-color:transparent;
   }
-  .tbtn.down{transform:scale(.92);background:rgba(255,209,102,.34)}
-  /* 3ボタンを扇形に置く（石が増えたので再設計） */
-  #btnRun  {right:calc(20px + var(--sar)); bottom:calc(22px + var(--sab)); width:92px;height:92px;font-size:14px}
-  #btnStone{right:calc(116px + var(--sar));bottom:calc(58px + var(--sab)); width:82px;height:82px;font-size:15px;
-            background:rgba(190,200,220,.20);border-color:rgba(220,230,245,.34)}
-  #btnStone.down{background:rgba(190,200,220,.40)}
-  #btnSneak{right:calc(36px + var(--sar)); bottom:calc(126px + var(--sab));width:82px;height:82px;font-size:13px;
-            background:rgba(124,247,196,.16)}
-  #btnSneak.down{background:rgba(124,247,196,.34)}
-  #btnAct  {right:calc(132px + var(--sar));bottom:calc(152px + var(--sab));width:74px;height:74px;font-size:13px;
-            background:rgba(255,140,180,.18);border-color:rgba(255,180,205,.34)}
-  #btnAct.down{background:rgba(255,140,180,.38)}
+  .abtn.down{transform:scale(.93)}
+  .abtn small{
+    display:block;font-size:8.5px;letter-spacing:0;line-height:1.15;
+    color:rgba(255,255,255,.58);font-family:"M PLUS Rounded 1c",sans-serif;font-weight:500;
+  }
+  /* A：しのび足（トグル。ONは光ったまま＝今の姿勢が一目で分かる） */
+  #btnA{right:2px;bottom:4px;width:clamp(56px,52%,86px);aspect-ratio:1;font-size:12px;
+        background:rgba(124,247,196,.14);border-color:rgba(124,247,196,.4)}
+  #btnA.on{background:rgba(124,247,196,.52);border-color:#7cf7c4;color:#06210f}
+  #btnA.on small{color:rgba(6,33,15,.7)}
+  /* B：いし（長押し→離して投げる） */
+  #btnB{right:calc(2px + clamp(60px,55%,92px));bottom:2px;width:clamp(52px,44%,74px);aspect-ratio:1;font-size:12px;
+        background:rgba(200,210,230,.18);border-color:rgba(220,230,245,.34)}
+  #btnB.down{background:rgba(200,210,230,.42)}
+  /* C：ダッシュ（押している間だけ） */
+  #btnC{right:calc(6px + clamp(56px,52%,86px));top:0;width:clamp(52px,44%,74px);aspect-ratio:1;font-size:11px;
+        background:rgba(255,154,104,.16);border-color:rgba(255,180,140,.36)}
+  #btnC.down{background:rgba(255,154,104,.44)}
+  .abtn b{font-size:15px;display:block}
 
   #btnPause{
     position:absolute;top:calc(8px + var(--sat));right:calc(10px + var(--sar));
     z-index:12;width:38px;height:38px;border-radius:10px;
     border:1px solid rgba(255,255,255,.18);background:rgba(8,14,28,.6);
-    color:#9fb3d4;font-size:15px;cursor:pointer;pointer-events:auto;
+    color:#9fb3d4;font-size:15px;cursor:pointer;
   }
   #btnPause:hover{color:#fff;border-color:var(--sig)}
-  .hint{position:absolute;left:12px;bottom:calc(6px + var(--sab));font-size:11px;color:#6f83a6;letter-spacing:.05em;z-index:11}
+  .hint{position:absolute;left:12px;bottom:6px;font-size:11px;color:#6f83a6;letter-spacing:.05em;z-index:11}
   @media (pointer:coarse){ .hint{display:none} }
-  @media (prefers-reduced-motion:reduce){ button.cta,.tbtn{transition:none} }
+  #tipTouch{display:none}
+  @media (max-width:560px){ #tipTouch{display:block;color:#9fb3d4} }
+  /* ── スマホ（縦持ち）：上段75%に必ず収める ──
+     長い説明はタイトルから畳む。面ごとの説明は codec 画面が担当するので情報は失われない。 */
+  @media (max-width:560px){
+    .screen{gap:9px;padding:calc(12px + var(--sat)) 14px 12px}
+    #scTitle .codec, #scTitle .keys, #scTitle .opt{display:none}
+    h1{font-size:clamp(21px,6.6vw,32px)}
+    h1 .sub{font-size:.40em;margin-top:6px}
+    h2{font-size:clamp(17px,4.6vw,24px)}
+    /* 面の説明が長いと「いくぞ」が画面外へ押し出されるので、説明側に上限を設けて中でスクロールさせる */
+    .codec{font-size:12.5px;line-height:1.7;padding:9px 12px;max-height:34vh;overflow-y:auto}
+    .keys{font-size:10.5px}
+    .eyebrow{font-size:10px;padding:4px 10px}
+    .objbar{font-size:12.5px;padding:6px 14px}
+    .tip{font-size:11px}
+    .stat{font-size:13px}
+    button.cta{font-size:15px;padding:11px 26px}
+  }
+  @media (prefers-reduced-motion:reduce){ button.cta,.abtn,#pad .d{transition:none} }
 </style>
 </head>
 <body>
-<div id="wrap">
+<div id="game-shell">
+<div id="game-stage">
+<div id="screen-wrap">
   <!-- タイトル -->
   <div class="screen on" id="scTitle">
     <div class="eyebrow">HD-2D TACTICAL KAKURENBO</div>
@@ -157,7 +224,9 @@
     <div class="keys">
       <span>移動 ← → ↑ ↓ / WASD</span><span>Shift ダッシュ</span><span>Z しのび足</span>
       <span>X（長押し）いしを構える → はなして投げる</span><span>E アクション</span><span>Esc 一時停止</span>
+      <span>スマホ：左＝十字キー／A しのび足・B いし・C ダッシュ</span><span>スマホ：「とる」は画面下のおびをタップ</span>
     </div>
+    <div class="tip" id="tipTouch">左＝十字キー　A＝しのび足　B＝いし（長おし→はなす）　C＝ダッシュ</div>
     <label class="opt"><input type="checkbox" id="optToggle"> ダッシュ／しのび足を「押しっぱなし」ではなく「切りかえ」にする</label>
     <button class="cta" id="btnStart">しゅつげき！</button>
   </div>
@@ -209,20 +278,30 @@
     <button class="ghost" id="btnQuit">タイトルへもどる</button>
   </div>
 
-  <div id="touch">
-    <div id="stick"></div>
-    <div id="knobBase"></div><div id="knob"></div>
-    <button class="tbtn" id="btnRun">ダッシュ</button>
-    <button class="tbtn" id="btnStone">いし</button>
-    <button class="tbtn" id="btnSneak">しのび足</button>
-    <button class="tbtn" id="btnAct">アクション</button>
-  </div>
   <button id="btnPause" title="一時停止 (Esc)">❚❚</button>
 
   <canvas id="cv"></canvas>
 
   <div class="hint">矢印/WASD＝移動　Shift＝ダッシュ　Z＝しのび足　X長押し＝いし　E＝アクション</div>
+</div><!-- /#screen-wrap -->
+</div><!-- /#game-stage -->
+
+<!-- ══ 操作盤（画面の下25%）══
+     左＝十字キー／右＝A しのび足・B いし・C ダッシュ
+     「とる／まってて」は画面下のヒント帯をタップする -->
+<div id="control-deck">
+  <div id="pad" aria-hidden="true">
+    <span class="d up"></span><span class="d dn"></span>
+    <span class="d lf"></span><span class="d rt"></span>
+    <span class="hub"></span><span class="glyph">移動</span>
+  </div>
+  <div id="acts">
+    <button class="abtn" id="btnC" aria-label="ダッシュ">ダッシュ<small>おしてる間</small></button>
+    <button class="abtn" id="btnB" aria-label="いしを投げる"><b>いし</b><small>長おし→はなす</small></button>
+    <button class="abtn" id="btnA" aria-label="しのび足">しのび足<small>きりかえ</small></button>
+  </div>
 </div>
+</div><!-- /#game-shell -->
 
 <script>
   /* iOS: ダブルタップ拡大とピンチを止める */

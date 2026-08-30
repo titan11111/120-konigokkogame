@@ -6,6 +6,7 @@
    ══════════════════════════════════════════ */
 import { TS, VW, VH, PHASE, STONE } from './config.js';
 import { current } from './map.js';
+import { ui, isTouch } from './input.js';
 
 const rr = (c,x,y,w,h,r) => {
   c.beginPath(); c.moveTo(x+r,y);
@@ -50,31 +51,37 @@ export function drawHUD(ctx, G){
   ctx.fillStyle='#8ea3c6'; ctx.font='700 10px "M PLUS Rounded 1c"';
   ctx.fillText('チャイムまで', VW/2, 43);
 
-  /* ★ ミッション目標（常時表示） */
+  /* ★ ミッション目標（常時表示）
+     縦持ちiPhoneでは幅が足りないので、短い言い方＋小さい字に落として必ず1行に収める */
   const prog = G.progressText();
-  ctx.font='700 13px "M PLUS Rounded 1c"';
-  const label = `${G.level.id}面：${G.objective.label}` + (prog ? `　［${prog}］` : '');
+  const narrow = VW < 700;
+  ctx.font = narrow ? '700 11px "M PLUS Rounded 1c"' : '700 13px "M PLUS Rounded 1c"';
+  let label = narrow
+    ? (G.objective.short || G.objective.label) + (prog ? `　［${prog}］` : '')
+    : `${G.level.id}面：${G.objective.label}` + (prog ? `　［${prog}］` : '');
+  while(label.length > 6 && ctx.measureText(label).width + 26 > VW - 16) label = label.slice(0, -2) + '…';
   const w = ctx.measureText(label).width + 26;
   ctx.fillStyle='rgba(124,247,196,.10)';
   rr(ctx, VW/2-w/2, 50, w, 21, 10); ctx.fill();
   ctx.strokeStyle='rgba(124,247,196,.35)'; ctx.lineWidth=1; ctx.stroke();
   ctx.fillStyle='#bff3dd'; ctx.fillText(label, VW/2, 65);
 
-  /* 警戒フェーズ（右上の一時停止ボタンと重ならないよう内側に寄せる） */
-  const RX = VW-64;
+  /* 警戒フェーズ（右上の一時停止ボタンと重ならないよう内側に寄せる。
+     縦持ちiPhoneはボタンが相対的に大きくなるので、さらに内側＋小さめの字にする） */
+  const RX = VW - (narrow ? 92 : 64);
   ctx.textAlign='right';
   ctx.fillStyle = ph.col;
   ctx.font = G.alert.phase==='NORMAL'
-    ? '700 14px "M PLUS Rounded 1c"'
-    : '800 19px "Dela Gothic One","M PLUS Rounded 1c"';
+    ? `700 ${narrow ? 12 : 14}px "M PLUS Rounded 1c"`
+    : `800 ${narrow ? 15 : 19}px "Dela Gothic One","M PLUS Rounded 1c"`;
   ctx.fillText(ph.label, RX, 31);
   if(G.alert.phase !== 'NORMAL'){
     const t = PHASE[G.alert.phase].t;
-    const bw = 118, bx = RX-bw, by = 41;
+    const bw = narrow ? 92 : 118, bx = RX-bw, by = 41;
     ctx.fillStyle='rgba(0,0,0,.45)'; rr(ctx,bx,by,bw,6,3); ctx.fill();
     ctx.fillStyle = ph.col; rr(ctx,bx,by,bw*Math.max(0,G.alert.timer/t),6,3); ctx.fill();
-    ctx.fillStyle='#8ea3c6'; ctx.font='700 10px "M PLUS Rounded 1c"';
-    ctx.fillText(nextLabel(G.alert.phase), RX, 61);
+    ctx.fillStyle='#8ea3c6'; ctx.font=`700 ${narrow ? 9 : 10}px "M PLUS Rounded 1c"`;
+    ctx.fillText(narrow ? shortNext(G.alert.phase) : nextLabel(G.alert.phase), RX, 61);
   }
 
   /* 移動モード ＋ 隠れ状態 */
@@ -84,15 +91,23 @@ export function drawHUD(ctx, G){
   ctx.textAlign='left'; ctx.fillStyle=modeCol; ctx.font='700 13px "M PLUS Rounded 1c"';
   ctx.fillText(modeTxt, 22, VH-22);
 
-  /* 文脈ボタンの案内（とる／まってて など） */
+  /* 文脈ボタンの案内（とる／まってて など）＝スマホではここが「4つ目のボタン」。
+     常設ボタンを増やさず、出ているときだけ帯そのものをタップさせる。
+     描いた矩形を input.js に渡してタップ判定に使う。 */
   if(p.actHint){
-    ctx.textAlign='center'; ctx.font='700 14px "M PLUS Rounded 1c"';
-    const t = p.actHint, ww = ctx.measureText(t).width + 34;
-    ctx.fillStyle='rgba(255,209,102,.16)';
-    rr(ctx, VW/2-ww/2, VH-118, ww, 30, 15); ctx.fill();
-    ctx.strokeStyle='rgba(255,209,102,.6)'; ctx.lineWidth=1.5; ctx.stroke();
-    ctx.fillStyle='#ffd166'; ctx.fillText(t, VW/2, VH-98);
-  }
+    ctx.textAlign='center';
+    ctx.font = isTouch ? '800 16px "M PLUS Rounded 1c"' : '700 14px "M PLUS Rounded 1c"';
+    const t  = isTouch ? p.actHint.replace('（E）','') + ' ▶ タップ' : p.actHint;
+    const ww = Math.min(VW-24, ctx.measureText(t).width + 40);
+    const hh = isTouch ? 40 : 30;
+    const bx = VW/2-ww/2, by = VH - (isTouch ? 74 : 118) - hh/2;
+    const pulse = .16 + Math.sin(G.elapsed*5)*.07;
+    ctx.fillStyle=`rgba(255,209,102,${pulse})`;
+    rr(ctx, bx, by, ww, hh, hh/2); ctx.fill();
+    ctx.strokeStyle='rgba(255,209,102,.75)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#ffd166'; ctx.fillText(t, VW/2, by + hh/2 + 6);
+    ui.hintRect = { x:bx, y:by, w:ww, h:hh, vw:VW, vh:VH };
+  } else ui.hintRect = null;
 
   /* トースト（一時メッセージ） */
   if(G.toastT > 0){
@@ -107,6 +122,9 @@ export function drawHUD(ctx, G){
   }
 
   drawRadar(ctx, G);
+}
+function shortNext(ph){
+  return ph==='ALERT' ? 'にげろ' : ph==='EVASION' ? 'もう少し' : 'あと少し';
 }
 function nextLabel(ph){
   return ph==='ALERT' ? 'にげきれば「さがしてる」へ'

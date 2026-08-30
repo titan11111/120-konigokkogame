@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════
    render.js ─ 描画（HD-2D風・Yソート・ライティング）
    ══════════════════════════════════════════ */
-import { TS, VW, VH, T, HIDE_SPEC, isHide } from './config.js';
+import { TS, VW, VH, T, HIDE_SPEC, isHide, setViewport, viewportFor } from './config.js';
 import { current, blocksSight, isRoad, tileAt } from './map.js';
 import { predict, rangeOf } from './stone.js';
 
@@ -10,16 +10,25 @@ let ctx, cv, lctx, lightCv, dpr = 1;
 export function initRender(canvas){
   cv = canvas; ctx = cv.getContext('2d');
   lightCv = document.createElement('canvas');
-  lightCv.width = VW; lightCv.height = VH;
   lctx = lightCv.getContext('2d');
-  resize(); addEventListener('resize', resize);
+  resize();
+  addEventListener('resize', resize);
+  addEventListener('orientationchange', () => setTimeout(resize, 60));
 }
 function resize(){
   dpr = Math.min(window.devicePixelRatio || 1, 2);
-  cv.width = VW*dpr; cv.height = VH*dpr;
+  const host = cv.parentElement || cv;
+  const r = host.getBoundingClientRect();
+  const v = viewportFor(r.width, r.height);
+  setViewport(v.w, v.h);
+  cv.width = v.w*dpr; cv.height = v.h*dpr;
+  // ハーネスの「Canvas上段フィット」判定が読む論理サイズ
+  cv.dataset.logicalWidth = v.w; cv.dataset.logicalHeight = v.h;
+  lightCv.width = v.w; lightCv.height = v.h;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.imageSmoothingEnabled = true;
 }
+export const viewSize = () => ({ w:VW, h:VH });
 
 const rr = (c,x,y,w,h,r) => {
   c.beginPath(); c.moveTo(x+r,y);

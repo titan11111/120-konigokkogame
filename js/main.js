@@ -16,9 +16,8 @@ import { sfx, unlock } from './audio.js';
 import * as In from './input.js';
 
 const cv = document.getElementById('cv');
-const wrapEl = document.getElementById('wrap');
 initRender(cv);
-In.initTouchUI(wrapEl);
+In.initTouchUI();
 In.initMouse(cv);
 
 /* ══ ゲーム状態 ══ */
@@ -275,9 +274,15 @@ const S = id => document.getElementById(id);
 const screens = ['scTitle','scCodec','scClear','scOver','scEnd','scPause'];
 function show(id){
   screens.forEach(s => S(s).classList.toggle('on', s === id));
-  document.getElementById('touch').classList.toggle('playing', id === null || id === undefined);
+  deckActive(false);
 }
-function hideAll(){ screens.forEach(s => S(s).classList.remove('on')); }
+function hideAll(){ screens.forEach(s => S(s).classList.remove('on')); deckActive(true); }
+/* オーバーレイ表示中は操作盤を暗くして反応させない（見えてはいるので位置は覚えられる）。
+   プレイに戻ったら必ず生き返らせる ─ ここを片方だけにすると操作盤が死んだままになる。 */
+function deckActive(on){
+  const d = document.getElementById('control-deck');
+  if(d) d.classList.toggle('dim', !on);
+}
 
 function showCodec(){
   const L = LEVELS[G.levelIndex];
@@ -292,6 +297,7 @@ function showCodec(){
 
 function startLevel(){
   unlock();
+  In.held.sneak = false; In.held.run = false; In.syncButtons();
   loadLevel(G.levelIndex);
   G.state = 'play';
   hideAll();

@@ -4,7 +4,17 @@
    ══════════════════════════════════════════ */
 
 export const TS = 32;              // 1タイルのピクセル数
-export const VW = 960, VH = 600;   // 画面（内部解像度）
+export let VW = 960, VH = 600;      // 画面（内部解像度）。端末の縦横比に合わせて変わる
+/* 端末のアスペクト比に合わせて内部解像度を決める。
+   ・横長（PC）: 高さ600固定＝従来どおり 960×600
+   ・縦長（iPhone）: 幅520固定。1タイル32pxが実機で約24pxになり、iPhoneで読める大きさになる
+     （従来は960幅を393pxに縮めていたので1タイル13px＝小さすぎた） */
+export function setViewport(w, h){ VW = w; VH = h; }
+export function viewportFor(px, py){
+  const a = (px > 0 && py > 0) ? px/py : 1.6;
+  return a >= 1 ? { w: Math.round(600*a), h: 600 }
+                : { w: 520, h: Math.round(520/a) };
+}
 
 /* ── タイル種別 ── */
 export const T = {
